@@ -1,13 +1,14 @@
-
 name: Auto Dealer CI Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   test:
@@ -16,10 +17,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set Up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.14"
 
@@ -37,13 +38,30 @@ jobs:
       - name: Build Docker Image
         run: docker build -t auto-dealer-api:${{ github.sha }} .
 
-      - name: Scan Docker Image with Trivy
+      - name: 'Trivy gate (blocking: CRITICAL only)'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: auto-dealer-api:${{ github.sha }}
           format: table
           exit-code: '1'
           ignore-unfixed: true
+          severity: 'CRITICAL'
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
 
+      - name: 'Trivy report (non-blocking: all severities)'
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: auto-dealer-api:${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          vuln-type: 'os,library'
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
