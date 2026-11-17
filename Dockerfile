@@ -12,6 +12,11 @@ RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 # Stage 2: Production image
 FROM python:3.14-slim AS production
 
+# Update Debian packages to include available security fixes
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Python runtime settings
@@ -25,6 +30,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
     && rm -rf /wheels \
     && rm requirements.txt
+
+# Upgrade packages with known security vulnerabilities
+RUN python -m pip install --no-cache-dir --upgrade \
+    "msgpack==1.2.3" \
+    "setuptools==78.1.1" \
+    "urllib3==2.8.0"
 
 # Copy application source code
 COPY app/ ./app/
