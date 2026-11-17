@@ -23,7 +23,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install dependencies from the builder stage
+# Install application dependencies
 COPY --from=builder /wheels /wheels
 COPY requirements.txt .
 
@@ -31,11 +31,16 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.t
     && rm -rf /wheels \
     && rm requirements.txt
 
-# Upgrade packages with known security vulnerabilities
-RUN python -m pip install --no-cache-dir --upgrade \
+# Upgrade all Python packages identified by Trivy
+RUN python -m pip install --no-cache-dir --upgrade --force-reinstall \
+    "jaraco.context==6.1.0" \
     "msgpack==1.2.3" \
     "setuptools==78.1.1" \
-    "urllib3==2.8.0"
+    "urllib3==2.8.0" \
+    "wheel==0.46.2"
+
+# Verify that the required secure versions are installed
+RUN python -c "from importlib.metadata import version; packages = {'jaraco.context': '6.1.0', 'msgpack': '1.2.3', 'setuptools': '78.1.1', 'urllib3': '2.8.0', 'wheel': '0.46.2'}; [print(f'{name}: {version(name)}') for name in packages]; assert all(version(name) == expected for name, expected in packages.items()), 'Security package version check failed'"
 
 # Copy application source code
 COPY app/ ./app/
@@ -56,3 +61,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # Start FastAPI
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
