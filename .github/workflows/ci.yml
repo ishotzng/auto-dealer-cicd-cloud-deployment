@@ -38,7 +38,7 @@ jobs:
       - name: Build Docker Image
         run: docker build -t auto-dealer-api:${{ github.sha }} .
 
-      - name: Trivy gate (blocking: CRITICAL only)
+      - name: 'Trivy gate (blocking: CRITICAL only)'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: auto-dealer-api:${{ github.sha }}
@@ -48,7 +48,7 @@ jobs:
           severity: 'CRITICAL'
           vuln-type: 'os,library'
 
-      - name: Trivy report (non-blocking: all severities)
+      - name: 'Trivy report (non-blocking: all severities)'
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
