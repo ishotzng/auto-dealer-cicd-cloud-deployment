@@ -15,7 +15,7 @@ anyio==4.16.0
     #   watchfiles
 click==8.5.1
     # via uvicorn
-fastapi==0.163.2
+fastapi==0.165.0
     # via -r requirements.in
 h11==0.16.0
     # via uvicorn
